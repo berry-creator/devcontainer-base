@@ -1,0 +1,14 @@
+FROM letsdone/devcontainer-base:python
+USER root
+
+ARG USERNAME=dev
+#region Install Nodejs
+USER ${USERNAME}
+RUN source ~/.zshrc && install_nodejs
+#endregion
+
+# Switch to dev user
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}/workspace
+
+ENTRYPOINT [ "/bin/zsh" ]

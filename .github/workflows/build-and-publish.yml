@@ -1,0 +1,100 @@
+name: Build devcontainer base image and publish to DockerHub
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  DOCKERHUB_REPO: letsdone/devcontainer-base
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Generate App Version
+        run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Build and push (without extra preinstalled tools)
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:latest
+            ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
+          
+      - name: Modify Dockerfile.python base image to use the newly built base image
+        run: |
+          sed -i "s|FROM ${DOCKERHUB_REPO}:latest|FROM ${DOCKERHUB_REPO}:${APP_VERSION}|g" Dockerfile.python
+
+      - name: Build and push (Only Python preinstalled)
+        id: build-and-push-with-python-preinstalled
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.python
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}-python
+          build-args: |
+            PYTHON_VERSION=3.12
+
+      - name: Modify Dockerfile.nodejs base image to use the newly built base image
+        run: |
+          sed -i "s|FROM ${DOCKERHUB_REPO}:latest|FROM ${DOCKERHUB_REPO}:${APP_VERSION}|g" Dockerfile.nodejs
+
+      - name: Build and push (Only Nodejs preinstalled)
+        id: build-and-push-with-nodejs-preinstalled
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.nodejs
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}-nodejs
+
+      - name: Modify Dockerfile.all base image to use the newly built base image with Python preinstalled
+        run: |
+          sed -i "s|FROM ${DOCKERHUB_REPO}:python|FROM ${DOCKERHUB_REPO}:${APP_VERSION}-python|g" Dockerfile.all
+
+      - name: Build and push (Both Nodejs and Python preinstalled)
+        id: build-and-push-with-python-and-nodejs-preinstalled
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.all
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}-all
