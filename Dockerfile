@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        procps inetutils-ping telnet neovim jq exiftool libxml2-utils zsh \
+        procps lsof inetutils-ping telnet neovim jq exiftool libxml2-utils zsh \
         git curl wget tar gzip zip unzip \
         ca-certificates sudo locales \
     && apt-get autoremove -y && apt-get clean -y \
@@ -53,6 +53,12 @@ RUN source ~/.zshrc \
 #region Add additional PATH
 USER ${USERNAME}
 RUN sed -i '3i\export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH' ~/.zshrc
+#endregion
+
+#region Import aliases/functions files if exist
+USER ${USERNAME}
+RUN echo '[ -f ~/.aliasrc ] && source ~/.aliasrc' >> ~/.zshrc && \
+    echo '[ -f ~/.functionrc ] && source ~/.functionrc' >> ~/.zshrc
 #endregion
 
 #region Add custom functions
