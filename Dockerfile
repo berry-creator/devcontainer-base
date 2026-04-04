@@ -75,11 +75,18 @@ install_python() {
     fi
 
     echo "▶ Installing Python using pyenv..."
-    curl -fsSL https://pyenv.run | bash
-    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-    echo 'eval "$(pyenv init -)"' >> ~/.zshrc
-    source ~/.zshrc
+
+    if ! command -v pyenv >/dev/null 2>&1; then
+        echo "pyenv not found, installing pyenv first..."
+        curl -fsSL https://pyenv.run | bash
+        echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+        echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+        source ~/.zshrc
+    else
+        echo "pyenv already installed, skipping pyenv installation"
+    fi
+
     pyenv install ${python_version:-3.12}
     pyenv global ${python_version:-3.12}
     echo "✓ Python installation completed, version: $(python --version)"
@@ -87,6 +94,7 @@ install_python() {
 
 install_nodejs() {
     set -e
+    nodejs_version="$1"
     
     if command -v node >/dev/null 2>&1; then
         echo "✓ Node.js already installed, skipping installation"
@@ -94,13 +102,26 @@ install_nodejs() {
     fi
     
     echo "▶ Installing Node.js using nvm..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | PROFILE="/home/${USERNAME}/.zshrc" bash
-    echo "" >> ~/.zshrc
-    echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm' >> ~/.zshrc
-    echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion' >> ~/.zshrc
-    source ~/.zshrc
-    nvm install --lts
+
+    if ! command -v nvm >/dev/null 2>&1; then
+        echo "nvm not found, installing nvm first..."
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | PROFILE="/home/${USERNAME}/.zshrc" bash
+        echo "" >> ~/.zshrc
+        echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
+        echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm' >> ~/.zshrc
+        echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion' >> ~/.zshrc
+        source ~/.zshrc
+    else
+        echo "nvm already installed, skipping nvm installation"
+    fi
+
+    if [ -n "${nodejs_version}" ]; then
+        nvm install ${nodejs_version}
+    else
+        nvm install --lts
+    fi
+
+    nvm alias default "$(node --version)"
     echo "✓ Node.js installation completed, version: $(node --version)"
 }
 
