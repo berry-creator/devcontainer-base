@@ -4,7 +4,6 @@ USER root
 #region Add extra tools if needed
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get install -y --no-install-recommends \
-        mariadb-client chromium \
         make build-essential libssl-dev zlib1g-dev \
         libbz2-dev libreadline-dev libsqlite3-dev \
         libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev \
