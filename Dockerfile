@@ -6,13 +6,28 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        procps lsof inetutils-ping telnet neovim jq exiftool libxml2-utils zsh \
+        procps lsof inetutils-ping telnet neovim jq ripgrep exiftool libxml2-utils zsh \
         git curl wget tar gzip zip unzip \
         ca-certificates sudo locales \
     && apt-get autoremove -y && apt-get clean -y \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo "${TZ}" > /etc/timezone && dpkg-reconfigure tzdata
+#endregion
+
+#region Install yq
+RUN set -eu; \
+    case "$(uname -m)" in \
+        x86_64) yq_asset="yq_linux_amd64" ;; \
+        aarch64) yq_asset="yq_linux_arm64" ;; \
+        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    yq_release_url="https://github.com/mikefarah/yq/releases/latest/download"; \
+    yq_tmp_dir="$(mktemp -d)"; \
+    curl -fsSLo "${yq_tmp_dir}/${yq_asset}" "${yq_release_url}/${yq_asset}"; \
+    install -m 0755 "${yq_tmp_dir}/${yq_asset}" /usr/local/bin/yq; \
+    rm -r "${yq_tmp_dir}"; \
+    yq --version
 #endregion
 
 #region Set up a new user for development
